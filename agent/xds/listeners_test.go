@@ -564,23 +564,26 @@ func expectListenerJSONResources(_ *testing.T, snap *proxycfg.ConfigSnapshot) ma
 						"portValue": 9999
 					}
 				},
+				"trafficDirection": "INBOUND",
 				"filterChains": [
 					{
 						"transportSocket": ` + expectedPublicTransportSocketJSON(snap) + `,
 						"filters": [
 							{
 								"name": "envoy.filters.network.rbac",
-								"config": {
+								"typedConfig": {
+									"@type": "type.googleapis.com/envoy.config.filter.network.rbac.v2.RBAC",
 										"rules": {
 											},
-										"stat_prefix": "connect_authz"
+										"statPrefix": "connect_authz"
 									}
 							},
 							{
 								"name": "envoy.filters.network.tcp_proxy",
-								"config": {
+								"typedConfig": {
+									"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
 									"cluster": "local_app",
-									"stat_prefix": "public_listener"
+									"statPrefix": "public_listener"
 								}
 							}
 						]
@@ -596,14 +599,16 @@ func expectListenerJSONResources(_ *testing.T, snap *proxycfg.ConfigSnapshot) ma
 					"portValue": 9191
 				}
 			},
+			"trafficDirection": "OUTBOUND",
 			"filterChains": [
 				{
 					"filters": [
 						{
 							"name": "envoy.filters.network.tcp_proxy",
-							"config": {
+							"typedConfig": {
+								"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
 								"cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream.db.default.dc1"
+								"statPrefix": "upstream.db.default.dc1"
 							}
 						}
 					]
@@ -619,14 +624,16 @@ func expectListenerJSONResources(_ *testing.T, snap *proxycfg.ConfigSnapshot) ma
 					"portValue": 8181
 				}
 			},
+			"trafficDirection": "OUTBOUND",
 			"filterChains": [
 				{
 					"filters": [
 						{
 							"name": "envoy.filters.network.tcp_proxy",
-							"config": {
+							"typedConfig": {
+								"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
 								"cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-								"stat_prefix": "upstream.prepared_query_geo-cache"
+								"statPrefix": "upstream.prepared_query_geo-cache"
 							}
 						}
 					]
@@ -691,9 +698,10 @@ const customListenerJSONTpl = `{
 			"filters": [
 				{
 					"name": "envoy.filters.network.tcp_proxy",
-					"config": {
+					"typedConfig": {
+						"@type": "type.googleapis.com/envoy.config.filter.network.tcp_proxy.v2.TcpProxy",
 							"cluster": "random-cluster",
-							"stat_prefix": "foo-stats"
+							"statPrefix": "foo-stats"
 						}
 				}
 			]
