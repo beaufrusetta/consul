@@ -8,14 +8,16 @@ import (
 	"text/template"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
 func TestClustersFromSnapshot(t *testing.T) {
@@ -677,7 +679,7 @@ func TestClustersFromSnapshot(t *testing.T) {
 					clusters, err := s.clustersFromSnapshot(cInfo, snap)
 					require.NoError(err)
 					sort.Slice(clusters, func(i, j int) bool {
-						return clusters[i].(*envoy.Cluster).Name < clusters[j].(*envoy.Cluster).Name
+						return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
 					})
 					r, err := createResponse(ClusterType, "00000001", "00000001", clusters)
 					require.NoError(err)
@@ -860,35 +862,35 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 	var tests = []struct {
 		name     string
 		lb       *structs.LoadBalancer
-		expected envoy.Cluster
+		expected envoy_cluster_v3.Cluster
 	}{
 		{
 			name: "skip empty",
 			lb: &structs.LoadBalancer{
 				Policy: "",
 			},
-			expected: envoy.Cluster{},
+			expected: envoy_cluster_v3.Cluster{},
 		},
 		{
 			name: "round robin",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyRoundRobin,
 			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_ROUND_ROBIN},
+			expected: envoy_cluster_v3.Cluster{LbPolicy: envoy_cluster_v3.Cluster_ROUND_ROBIN},
 		},
 		{
 			name: "random",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyRandom,
 			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_RANDOM},
+			expected: envoy_cluster_v3.Cluster{LbPolicy: envoy_cluster_v3.Cluster_RANDOM},
 		},
 		{
 			name: "maglev",
 			lb: &structs.LoadBalancer{
 				Policy: structs.LBPolicyMaglev,
 			},
-			expected: envoy.Cluster{LbPolicy: envoy.Cluster_MAGLEV},
+			expected: envoy_cluster_v3.Cluster{LbPolicy: envoy_cluster_v3.Cluster_MAGLEV},
 		},
 		{
 			name: "ring_hash",
@@ -899,10 +901,10 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 					MaximumRingSize: 7,
 				},
 			},
-			expected: envoy.Cluster{
-				LbPolicy: envoy.Cluster_RING_HASH,
-				LbConfig: &envoy.Cluster_RingHashLbConfig_{
-					RingHashLbConfig: &envoy.Cluster_RingHashLbConfig{
+			expected: envoy_cluster_v3.Cluster{
+				LbPolicy: envoy_cluster_v3.Cluster_RING_HASH,
+				LbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig_{
+					RingHashLbConfig: &envoy_cluster_v3.Cluster_RingHashLbConfig{
 						MinimumRingSize: &wrappers.UInt64Value{Value: 3},
 						MaximumRingSize: &wrappers.UInt64Value{Value: 7},
 					},
@@ -917,10 +919,10 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 					ChoiceCount: 3,
 				},
 			},
-			expected: envoy.Cluster{
-				LbPolicy: envoy.Cluster_LEAST_REQUEST,
-				LbConfig: &envoy.Cluster_LeastRequestLbConfig_{
-					LeastRequestLbConfig: &envoy.Cluster_LeastRequestLbConfig{
+			expected: envoy_cluster_v3.Cluster{
+				LbPolicy: envoy_cluster_v3.Cluster_LEAST_REQUEST,
+				LbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig_{
+					LeastRequestLbConfig: &envoy_cluster_v3.Cluster_LeastRequestLbConfig{
 						ChoiceCount: &wrappers.UInt32Value{Value: 3},
 					},
 				},
@@ -930,7 +932,7 @@ func TestEnvoyLBConfig_InjectToCluster(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var c envoy.Cluster
+			var c envoy_cluster_v3.Cluster
 			err := injectLBToCluster(tc.lb, &c)
 			require.NoError(t, err)
 

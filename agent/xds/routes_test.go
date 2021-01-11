@@ -6,17 +6,18 @@ import (
 	"testing"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+
 	"github.com/golang/protobuf/ptypes"
+	testinf "github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/proxysupport"
 	"github.com/hashicorp/consul/sdk/testutil"
-	testinf "github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRoutesFromSnapshot(t *testing.T) {
@@ -267,7 +268,7 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					routes, err := s.routesFromSnapshot(cInfo, snap)
 					require.NoError(err)
 					sort.Slice(routes, func(i, j int) bool {
-						return routes[i].(*envoy.RouteConfiguration).Name < routes[j].(*envoy.RouteConfiguration).Name
+						return routes[i].(*envoy_route_v3.RouteConfiguration).Name < routes[j].(*envoy_route_v3.RouteConfiguration).Name
 					})
 					r, err := createResponse(RouteType, "00000001", "00000001", routes)
 					require.NoError(err)
@@ -290,7 +291,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 	var tests = []struct {
 		name     string
 		lb       *structs.LoadBalancer
-		expected envoyroute.RouteAction
+		expected envoy_route_v3.RouteAction
 	}{
 		{
 			name: "empty",
@@ -298,7 +299,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 				Policy: "",
 			},
 			// we only modify route actions for hash-based LB policies
-			expected: envoyroute.RouteAction{},
+			expected: envoy_route_v3.RouteAction{},
 		},
 		{
 			name: "least request",
@@ -309,7 +310,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 				},
 			},
 			// we only modify route actions for hash-based LB policies
-			expected: envoyroute.RouteAction{},
+			expected: envoy_route_v3.RouteAction{},
 		},
 		{
 			name: "headers",
@@ -327,11 +328,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-							Header: &envoyroute.RouteAction_HashPolicy_Header{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
+							Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 								HeaderName: "x-route-key",
 							},
 						},
@@ -356,19 +357,19 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "red-velvet",
 							},
 						},
 						Terminal: true,
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 							},
 						},
@@ -391,11 +392,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Ttl:  ptypes.DurationProto(0 * time.Second),
 							},
@@ -418,11 +419,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Path: "/oven",
 								Ttl:  nil,
@@ -443,11 +444,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties{
 								SourceIp: true,
 							},
 						},
@@ -488,19 +489,19 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 					},
 				},
 			},
-			expected: envoyroute.RouteAction{
-				HashPolicy: []*envoyroute.RouteAction_HashPolicy{
+			expected: envoy_route_v3.RouteAction{
+				HashPolicy: []*envoy_route_v3.RouteAction_HashPolicy{
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_ConnectionProperties_{
-							ConnectionProperties: &envoyroute.RouteAction_HashPolicy_ConnectionProperties{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties_{
+							ConnectionProperties: &envoy_route_v3.RouteAction_HashPolicy_ConnectionProperties{
 								SourceIp: true,
 							},
 						},
 						Terminal: true,
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "oatmeal",
 								Ttl:  ptypes.DurationProto(10 * time.Second),
 								Path: "/oven",
@@ -508,8 +509,8 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						},
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Cookie_{
-							Cookie: &envoyroute.RouteAction_HashPolicy_Cookie{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Cookie_{
+							Cookie: &envoy_route_v3.RouteAction_HashPolicy_Cookie{
 								Name: "chocolate-chip",
 								Ttl:  ptypes.DurationProto(0 * time.Second),
 								Path: "/oven",
@@ -517,8 +518,8 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						},
 					},
 					{
-						PolicySpecifier: &envoyroute.RouteAction_HashPolicy_Header_{
-							Header: &envoyroute.RouteAction_HashPolicy_Header{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
+							Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 								HeaderName: "special-header",
 							},
 						},
@@ -531,7 +532,7 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var ra envoyroute.RouteAction
+			var ra envoy_route_v3.RouteAction
 			err := injectLBToRouteAction(tc.lb, &ra)
 			require.NoError(t, err)
 
