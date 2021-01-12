@@ -104,6 +104,15 @@ func TestStateStore_Usage_Restore(t *testing.T) {
 			Address: "198.18.0.2",
 		},
 	})
+	restore.Registration(9, &structs.RegisterRequest{
+		Node: "test-node",
+		Service: &structs.NodeService{
+			ID:      "mysql1",
+			Service: "mysql",
+			Port:    8081,
+			Address: "198.18.0.2",
+		},
+	})
 	require.NoError(t, restore.Commit())
 
 	idx, count, err := s.NodeCount()

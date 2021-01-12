@@ -191,7 +191,11 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 
 		if u == nil {
 			if delta < 0 {
-				return fmt.Errorf("failed to insert usage entry for %q: delta will cause a negative count", id)
+				// Don't return an error here, since we don't want to block updates
+				// from happening to the state store. But, set the delta to 0 so that
+				// we do not accidentally underflow the uint64 and begin reporting
+				// large numbers.
+				delta = 0
 			}
 			err := tx.Insert("usage", &UsageEntry{
 				ID:    id,
@@ -202,12 +206,17 @@ func writeUsageDeltas(tx WriteTxn, idx uint64, usageDeltas map[string]int) error
 				return fmt.Errorf("failed to update usage entry: %s", err)
 			}
 		} else if cur, ok := u.(*UsageEntry); ok {
-			if cur.Count+delta < 0 {
-				return fmt.Errorf("failed to insert usage entry for %q: delta will cause a negative count", id)
+			updated := cur.Count + delta
+			if updated < 0 {
+				// Don't return an error here, since we don't want to block updates
+				// from happening to the state store. But, set the delta to 0 so that
+				// we do not accidentally underflow the uint64 and begin reporting
+				// large numbers.
+				updated = 0
 			}
 			err := tx.Insert("usage", &UsageEntry{
 				ID:    id,
-				Count: cur.Count + delta,
+				Count: updated,
 				Index: idx,
 			})
 			if err != nil {
